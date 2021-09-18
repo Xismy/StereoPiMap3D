@@ -15,6 +15,8 @@ find_package( OpenCV REQUIRED )
 target_link_libraries(StereoPiMap3D PRIVATE 
 	pthread
 	mjpeg_http
-	${OpenCV_LIBS}
+	opencv_core
+	opencv_calib3d
+	opencv_videoio
 )
 add_subdirectory(src)

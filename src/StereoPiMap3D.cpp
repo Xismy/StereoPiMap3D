@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include "http_server.h"
 #include "mjpeg_stream.h"
-#include <opencv2/highgui.hpp>
 
 StereoPiMap3D::StereoPiMap3D(mjpeg_http::MJPEG_Stream &leftStream, mjpeg_http::MJPEG_Stream &rightStream) :
 leftStream(leftStream),
@@ -38,8 +37,6 @@ void StereoPiMap3D::mainLoop(){
 
 	 *leftCamera >> leftImage;
 	 *rightCamera >> rightImage;
-
-	 cv::imshow("fdsa", leftImage);
 
 	std::vector<uchar> buff;
 	cv::imencode(".jpeg", leftImage, buff);
@@ -77,9 +74,7 @@ int main(int argc, char** argv){
 
 		while(1){
 			spm3d.mainLoop();
-			if(cv::waitKey(10) == 27)
-				break;
-//			usleep(50000);
+			usleep(50000);
 		}
 
 		server.close();
