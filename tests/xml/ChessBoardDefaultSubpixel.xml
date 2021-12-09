@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<opencv_storage>
+	<CameraIndex>2</CameraIndex>
+	<NSamples>7</NSamples>
+	<MethodConfig>
+		<Type>ChessBoard</Type>
+		<Width>8</Width>
+		<Height>7</Height>
+		<SubPixelConfig></SubPixelConfig>
+	</MethodConfig>
+</opencv_storage>

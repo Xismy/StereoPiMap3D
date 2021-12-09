@@ -38,6 +38,7 @@ public:
 	void setCameraIndex(Side side, int index);
 	void swapCameras();
 
+	void init();
 	void mainLoop();
 
 };

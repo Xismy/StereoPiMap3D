@@ -38,6 +38,9 @@ namespace mjpeg_http{
 		int maxConnections;
 	};
 
+	/**
+	 * HTTP Server with mjpeg streaming.
+	 */
 	class Server{
 	private:
 		ServerConfig config;
@@ -55,9 +58,27 @@ namespace mjpeg_http{
 		std::mutex serverMutex;
 
 	public:
+		/**
+		 *
+		 * @param config ServerConfiguration parameters.
+		 * @throws mjpeg_http::SocketException Thrown when socket creation fails.
+		 */
 		Server(const ServerConfig &config);
 		Server(const Server &&other);
+
+		/**
+		 * Creates a new MJPEG resource in the server.
+		 * @param resource Resource URN.
+		 * @param delimiter MJPEG delimiter.
+		 * @return Reference to new MJPEG resource.
+		 */
 		MJPEG_Stream &addMJPEG_Stream(const std::string &resource, const std::string &delimiter);
+
+		/**
+		 *
+		 * @param resource
+		 * @return
+		 */
 		MJPEG_Stream *getMJPEG_Stream(std::string resource);
 		void joinThread();
 		void close();
@@ -70,6 +91,7 @@ namespace mjpeg_http{
 	public:
 		SocketException(const ServerConfig &config, const std::string info);
 		virtual const char *what() const noexcept override;
+		virtual ~SocketException() = default;
 	};
 }
 

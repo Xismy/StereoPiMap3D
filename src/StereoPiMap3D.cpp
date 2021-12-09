@@ -31,6 +31,10 @@ StereoPiMap3D::~StereoPiMap3D(){
 	delete rightCamera;
 }
 
+void StereoPiMap3D::init(){
+
+}
+
 void StereoPiMap3D::mainLoop(){
 	cv::Mat leftImage;
 	cv::Mat rightImage;
@@ -53,11 +57,6 @@ void StereoPiMap3D::setCameraIndex(Side side, int index){
 
 void StereoPiMap3D::swapCameras(){
 	std::swap(leftCamera, rightCamera);
-}
-
-void parseException(const std::exception &exception){
-	std::cout << exception.what();
-	exit(-1);
 }
 
 int main(int argc, char** argv){
