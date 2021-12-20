@@ -9,37 +9,68 @@
 #define INCLUDE_CALIBRATION_H_
 
 #include <string>
+#include <map>
+#include <memory>
 
 #include <opencv2/videoio.hpp>
 #include <opencv2/core/types.hpp>
 
 namespace calibration{
-	enum Method{
-		ChessBoard,
-		ChessBoardSB,
-		Circles
+	struct MethodConfig{
+		static MethodConfig *instance(const std::string &type);
+
+		bool operator==(const MethodConfig &other) const{ return this->equals(other); }
+		bool operator!=(const MethodConfig &other) const{ return not (*this == other); }
+
+		virtual std::string name() = 0;
+		virtual void loadConfig(const cv::FileNode &file) = 0;
+		virtual void saveConfig(cv::FileStorage &file) const = 0;
+		virtual void processFrame(cv::Mat &frame, cv::Mat &points) = 0;
+		virtual bool equals(const MethodConfig &other) const = 0;
+		virtual ~MethodConfig() = default;
 	};
 
-	struct ChessBoardConfig{
+	struct ChessBoardConfig : MethodConfig{
 		cv::Size size {7, 6};
 		bool bFindSubPixel {false};
 		cv::Size subPixelWinSize {5, 5};
 		cv::Size subPixelZeroZone {-1, -1};
 		cv::TermCriteria subPixelCriteria {cv::TermCriteria::COUNT, 150, 0};
+
+		static std::string s_name() { return "ChessBoard"; }
+		std::string name() { return s_name(); }
+		void loadConfig(const cv::FileNode &file) override;
+		void saveConfig(cv::FileStorage &file) const override;
+		void processFrame(cv::Mat &frame, cv::Mat &points) override;
+
+		bool equals(const MethodConfig &other) const {
+			const ChessBoardConfig *pOther = dynamic_cast<const ChessBoardConfig*>(&other);
+
+			return pOther != nullptr
+			   and size == pOther->size
+			   and bFindSubPixel == pOther->bFindSubPixel
+			   and subPixelWinSize == pOther->subPixelWinSize
+			   and subPixelZeroZone == pOther->subPixelZeroZone
+			   and subPixelCriteria.type == pOther->subPixelCriteria.type
+			   and subPixelCriteria.maxCount == pOther->subPixelCriteria.maxCount
+			   and subPixelCriteria.epsilon == pOther->subPixelCriteria.epsilon;
+		}
 	};
+
 
 	struct Config
 	{
 		int cameraIndex {0};
 		int nSamples {10};
-		Method method {Method::ChessBoard};
-		union {
-			ChessBoardConfig chessBoard;
-		}methodConfig {ChessBoardConfig()};
+		std::shared_ptr<MethodConfig> methodConfig = std::make_shared<ChessBoardConfig>();
 
-		Config() = default;
-		Config(const Config &src) {memcpy(this, &src, sizeof(src));}
+		bool operator==(const Config &other) const {
+			return cameraIndex == other.cameraIndex and nSamples == other.nSamples and *methodConfig == *(other.methodConfig);
+		}
+
+		bool operator!=(const Config &other) const { return not (*this == other); }
 	};
+
 
 	class Calibration
 	{
@@ -48,18 +79,11 @@ namespace calibration{
 		cv::VideoCapture _camera;
 		std::vector<cv::Mat> _points;
 
-		void _loadChessBoardConfig(const cv::FileNode &chessBoardNode);
-		void _loadChessBoardSBConfig(const cv::FileNode &chessBoardNode);
-		void _loadCirclesConfig(const cv::FileNode &circlesNode);
-		void _processFrameChessBoard(cv::Mat &img);
-		void _processFrameChessBoardSB(cv::Mat &img);
-		void _processFrameCircles(cv::Mat &img);
-		void _readSize(const cv::FileNode &sizeNode, cv::Size &size);
-
 	public:
-		Calibration(std::string configFile);
+		Calibration(const std::string &configFile);
 		Config configuration() const { return _configuration; }
 		void processFrame(cv::Mat &img);
+		void saveConfigFile(const std::string &filename);
 	};
 }//namespace calibration
 

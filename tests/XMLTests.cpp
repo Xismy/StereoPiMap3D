@@ -17,14 +17,15 @@ TEST(LoadXMLTest, ChessboardFull){
 		calibration::Calibration calibration ("xml/ChessBoardFull.xml");
 		EXPECT_EQ(calibration.configuration().cameraIndex, 2);
 		EXPECT_EQ(calibration.configuration().nSamples, 7);
-		EXPECT_EQ(calibration.configuration().method, calibration::Method::ChessBoard);
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.size, cv::Size(8, 7));
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.bFindSubPixel, true);
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.subPixelCriteria.type, cv::TermCriteria::COUNT + cv::TermCriteria::EPS);
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.subPixelCriteria.epsilon, 0.01);
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.subPixelCriteria.maxCount, 100);
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.subPixelWinSize, cv::Size(4, 4));
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.subPixelZeroZone, cv::Size(1, 1));
+		calibration::ChessBoardConfig *cbConfig = dynamic_cast<calibration::ChessBoardConfig*>(calibration.configuration().methodConfig.get());
+		ASSERT_TRUE(cbConfig != nullptr);
+		EXPECT_EQ(cbConfig->size, cv::Size(8, 7));
+		EXPECT_EQ(cbConfig->bFindSubPixel, true);
+		EXPECT_EQ(cbConfig->subPixelCriteria.type, cv::TermCriteria::COUNT + cv::TermCriteria::EPS);
+		EXPECT_EQ(cbConfig->subPixelCriteria.epsilon, 0.01);
+		EXPECT_EQ(cbConfig->subPixelCriteria.maxCount, 100);
+		EXPECT_EQ(cbConfig->subPixelWinSize, cv::Size(4, 4));
+		EXPECT_EQ(cbConfig->subPixelZeroZone, cv::Size(1, 1));
 	}
 	catch(const std::string &str){
 		ASSERT_TRUE(false) << "Exception thrown:" << str;
@@ -40,13 +41,14 @@ TEST(LoadXMLTest, ChessboardDefaultSubpixel){
 		calibration::Calibration calibration ("xml/ChessBoardDefaultSubpixel.xml");
 		EXPECT_EQ(calibration.configuration().cameraIndex, 2);
 		EXPECT_EQ(calibration.configuration().nSamples, 7);
-		EXPECT_EQ(calibration.configuration().method, calibration::Method::ChessBoard);
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.size, cv::Size(8, 7));
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.bFindSubPixel, true);
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.subPixelCriteria.type, cv::TermCriteria::COUNT);
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.subPixelCriteria.maxCount, 150);
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.subPixelWinSize, cv::Size(5, 5));
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.subPixelZeroZone, cv::Size(-1, -1));
+		calibration::ChessBoardConfig *cbConfig = dynamic_cast<calibration::ChessBoardConfig*>(calibration.configuration().methodConfig.get());
+		ASSERT_TRUE(cbConfig != nullptr);
+		EXPECT_EQ(cbConfig->size, cv::Size(8, 7));
+		EXPECT_EQ(cbConfig->bFindSubPixel, true);
+		EXPECT_EQ(cbConfig->subPixelCriteria.type, cv::TermCriteria::COUNT);
+		EXPECT_EQ(cbConfig->subPixelCriteria.maxCount, 150);
+		EXPECT_EQ(cbConfig->subPixelWinSize, cv::Size(5, 5));
+		EXPECT_EQ(cbConfig->subPixelZeroZone, cv::Size(-1, -1));
 	}
 	catch(const std::string &str){
 		ASSERT_TRUE(false) << "Exception thrown:" << str;
@@ -62,9 +64,10 @@ TEST(LoadXMLTest, ChessboardNoSubpixel){
 		calibration::Calibration calibration ("xml/ChessBoardNoSubpixel.xml");
 		EXPECT_EQ(calibration.configuration().cameraIndex, 2);
 		EXPECT_EQ(calibration.configuration().nSamples, 7);
-		EXPECT_EQ(calibration.configuration().method, calibration::Method::ChessBoard);
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.size, cv::Size(8, 7));
-		EXPECT_EQ(calibration.configuration().methodConfig.chessBoard.bFindSubPixel, false);
+		calibration::ChessBoardConfig *cbConfig = dynamic_cast<calibration::ChessBoardConfig*>(calibration.configuration().methodConfig.get());
+		ASSERT_TRUE(cbConfig != nullptr);
+		EXPECT_EQ(cbConfig->size, cv::Size(8, 7));
+		EXPECT_EQ(cbConfig->bFindSubPixel, false);
 	}
 	catch(const std::string &str){
 		ASSERT_TRUE(false) << "Exception thrown:" << str;
@@ -75,4 +78,34 @@ TEST(LoadXMLTest, ChessboardNoSubpixel){
 }
 
 
+TEST(ConfigComparatation, ChessboardFull){
+	try{
+		calibration::Calibration calibration1 ("xml/ChessBoardFull.xml");
+		calibration::Calibration calibration2 ("xml/ChessBoardFull.xml");
 
+		EXPECT_TRUE(calibration1.configuration().methodConfig->equals(*(calibration2.configuration().methodConfig)));
+		EXPECT_EQ(calibration1.configuration(), calibration2.configuration());
+	}
+	catch(const std::string &str){
+		ASSERT_TRUE(false) << "Exception thrown:" << str;
+	}
+	catch(...){
+		ASSERT_TRUE(false) << "Unexpected exception thrown";
+	}
+}
+
+
+TEST(LoadXMLTest, SaveConfigFile){
+	try{
+		calibration::Calibration calibration ("xml/ChessBoardFull.xml");
+		calibration.saveConfigFile("tmp/ChessBoardFull.xml");
+		calibration::Calibration writtenCalibration("tmp/ChessBoardFull.xml");
+		EXPECT_EQ(calibration.configuration(), writtenCalibration.configuration());
+	}
+	catch(const std::string &str){
+		ASSERT_TRUE(false) << "Exception thrown:" << str;
+	}
+	catch(...){
+		ASSERT_TRUE(false) << "Unexpected exception thrown";
+	}
+}

@@ -5,9 +5,25 @@
 
 
 using namespace calibration;
-Calibration::Calibration(std::string configFile)
+
+void readSize(const cv::FileNode &sizeNode, cv::Size &size){
+	cv::Size sizeRead {sizeNode["Width"], sizeNode["Height"]};
+
+	if(sizeRead != cv::Size{0, 0})
+		size = sizeRead;
+}
+
+
+MethodConfig *MethodConfig::instance(const std::string &type){
+	if(type == ChessBoardConfig::s_name())
+		return new ChessBoardConfig();
+	//TODO: Implement ChssboardSB and Circles
+	return nullptr;
+}
+
+Calibration::Calibration(const std::string &configFile)
 {
-	cv::FileStorage file(configFile, cv::FileStorage::READ);
+	cv::FileStorage file{configFile, cv::FileStorage::READ};
 
 	if(!file.isOpened())
 		throw std::string("Could not open file: [") + configFile + "]";
@@ -15,61 +31,33 @@ Calibration::Calibration(std::string configFile)
 	_configuration.cameraIndex = file["CameraIndex"];
 	_configuration.nSamples = file["NSamples"];
 	cv::FileNode node = file["MethodConfig"];
-
-	if(node["Type"] == "ChessBoard"){
-		_configuration.method = Method::ChessBoard;
-		_loadChessBoardConfig(node);
-	}
-	else if(node["Type"] == "ChessBoardSB"){
-		_configuration.method = Method::ChessBoardSB;
-		_loadChessBoardSBConfig(node);
-	}
-	else if(node["Type"] == "Circles"){
-		_configuration.method = Method::Circles;
-		_loadCirclesConfig(node);
-	}
-	else{
-		std::cerr << "Method not specified, using ChessBoard";
-	}
-
+	_configuration.methodConfig = std::shared_ptr<MethodConfig>{MethodConfig::instance(node["Type"])};
+	_configuration.methodConfig->loadConfig(node);
 	_points = std::vector<cv::Mat>(_configuration.nSamples);
 }
 
 
-void Calibration::_loadChessBoardConfig(const cv::FileNode &chessBoardNode){
-	ChessBoardConfig &chessBoardConfig = _configuration.methodConfig.chessBoard;
-	_readSize(chessBoardNode, chessBoardConfig.size);
+void ChessBoardConfig::loadConfig(const cv::FileNode &chessBoardNode){
+	readSize(chessBoardNode, size);
 
 	cv::FileNode subpixelConfig = chessBoardNode["SubPixelConfig"];
 
 	if(not subpixelConfig.empty()){
-		chessBoardConfig.bFindSubPixel = true;
-		_readSize(subpixelConfig["WinSize"], chessBoardConfig.subPixelWinSize);
-		_readSize(subpixelConfig["ZeroZone"],chessBoardConfig.subPixelZeroZone);
+		bFindSubPixel = true;
+		readSize(subpixelConfig["WinSize"], subPixelWinSize);
+		readSize(subpixelConfig["ZeroZone"], subPixelZeroZone);
 
 		cv::FileNode subPixelMaxCount = subpixelConfig["MaxCount"];
 		cv::FileNode subPixelEpsilon = subpixelConfig["Epsilon"];
-		chessBoardConfig.subPixelCriteria.type = not subPixelEpsilon.empty() and not subPixelMaxCount.empty()? cv::TermCriteria::COUNT + cv::TermCriteria::EPS :
-				                                 not subPixelEpsilon.empty()? cv::TermCriteria::EPS :
-		                                         cv::TermCriteria::COUNT;
+		subPixelCriteria.type = not subPixelEpsilon.empty() and not subPixelMaxCount.empty()? cv::TermCriteria::COUNT + cv::TermCriteria::EPS :
+		                                 not subPixelEpsilon.empty()? cv::TermCriteria::EPS :
+		                                 cv::TermCriteria::COUNT;
 
 		if(not subPixelMaxCount.empty())
-			chessBoardConfig.subPixelCriteria.maxCount = subPixelMaxCount;
+			subPixelCriteria.maxCount = subPixelMaxCount;
 
-		chessBoardConfig.subPixelCriteria.epsilon = subPixelEpsilon;
+		subPixelCriteria.epsilon = subPixelEpsilon;
 	}
-}
-
-
-void Calibration::_loadChessBoardSBConfig(const cv::FileNode &chessBoardNode){
-	//TODO
-	std::cerr << "Not implemented yet";
-}
-
-
-void Calibration::_loadCirclesConfig(const cv::FileNode &circlesNode){
-	//TODO
-	std::cerr << "Not implemented yet";
 }
 
 
@@ -82,42 +70,49 @@ void Calibration::processFrame(cv::Mat &frame)
 	}
 
 	if(_points.back().empty()){
-		switch(_configuration.method){
-		case Method::ChessBoard:
-			_processFrameChessBoard(frame);
-			break;
-		case Method::ChessBoardSB:
-			_processFrameChessBoardSB(frame);
-			break;
-		case Method::Circles:
-			_processFrameCircles(frame);
-			break;
-		}
+		_configuration.methodConfig->processFrame(frame, _points.back());
 	}
 }
 
 
-void Calibration::_processFrameChessBoard(cv::Mat &frame){
-	bool bFound = cv::findChessboardCorners(frame, _configuration.methodConfig.chessBoard.size, _points.back(), 0);
-	cv::drawChessboardCorners(frame, _configuration.methodConfig.chessBoard.size, _points.back(), bFound);
+void ChessBoardConfig::processFrame(cv::Mat &frame, cv::Mat &points){
+	bool bFound = cv::findChessboardCorners(frame, size, points, 0);
+	cv::drawChessboardCorners(frame, size, points, bFound);
 }
 
 
-void Calibration::_processFrameChessBoardSB(cv::Mat &frame){
-	//TODO
-	std::cerr << "Not implemented yet";
+void Calibration::saveConfigFile(const std::string &filename){
+	cv::FileStorage file{filename, cv::FileStorage::WRITE};
+
+	file << "CameraIndex" <<_configuration.cameraIndex;
+	file << "NSamples" << _configuration.nSamples;
+	file << "MethodConfig" << "{";
+		file << "Type" << _configuration.methodConfig->name();
+		_configuration.methodConfig->saveConfig(file);
+	file << "}";
 }
 
 
-void Calibration::_processFrameCircles(cv::Mat &frame){
-	//TODO
-	std::cerr << "Not implemented yet";
+void ChessBoardConfig::saveConfig(cv::FileStorage &file) const{
+	file << "Width" << size.width;
+	file << "Height" << size.height;
+	file << "SubPixelConfig" << "{";
+		file << "WinSize" << "{";
+			file << "Width" << subPixelWinSize.width;
+			file << "Height" << subPixelWinSize.height;
+		file << "}";
+
+		file << "ZeroZone" << "{";
+			file << "Width" << subPixelZeroZone.width;
+			file << "Height" << subPixelZeroZone.height;
+		file << "}";
+
+		if(subPixelCriteria.type & cv::TermCriteria::COUNT)
+			file << "MaxCount" << subPixelCriteria.maxCount;
+
+		if(subPixelCriteria.type & cv::TermCriteria::EPS)
+			file << "Epsilon" << subPixelCriteria.epsilon;
+	file << "}";
 }
 
 
-void Calibration::_readSize(const cv::FileNode &sizeNode, cv::Size &size){
-	cv::Size sizeRead {sizeNode["Width"], sizeNode["Height"]};
-
-	if(sizeRead != cv::Size{0, 0})
-		size = sizeRead;
-}
