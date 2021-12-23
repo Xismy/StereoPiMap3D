@@ -8,9 +8,11 @@
 #include "gtest/gtest.h"
 
 #include <string>
+#include <vector>
 #include <iostream>
 
 #include "calibration.h"
+#include "stereopi_camera.h"
 
 TEST(LoadXMLTest, ChessboardFull){
 	try{
@@ -108,4 +110,16 @@ TEST(LoadXMLTest, SaveConfigFile){
 	catch(...){
 		ASSERT_TRUE(false) << "Unexpected exception thrown";
 	}
+
+	
+TEST(CameraParams, LoadXML){
+	stereopi::Camera camera{"xml/Camera1"};
+	EXPECT_EQ(camera.id(), 1);
+	EXPECT_EQ(camera.matrix(), cv::Mat{std::vector<double>{
+		6.5746697944293521e+002, 0.0                    , 3.1950000000000000e+002,
+		0.0                    , 6.5746697944293521e+002, 2.3950000000000000e+002,
+		0.0                    , 0.0                    , 1.0
+	}}.reshape(0, 3));
+
+	EXPECT_EQ(camera.distortion(), cv::Mat{std::vector<double>{ -4.1802327176423804e-001, 5.0715244063187526e-001, 0.0, 0.0, -5.7843597214487474e-001}});
 }
