@@ -14,13 +14,13 @@ Camera::Camera(const std::string &paramFile){
 
 	cv::FileNode matrix = file["Matrix"];
 
-	for(auto element : matrix){
+	for(double element : matrix){
 		_matrix.push_back(element);
 	}
 	_matrix.reshape(0, 3);
 
 	cv::FileNode distortion = file["Distortion"];
-	for(auto element : distortion){
+	for(double element : distortion){
 		_distortion.push_back(element);
 	}
 }

@@ -1,5 +1,7 @@
 #include "calibration.h"
 
+#include "algorithm"
+
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/persistence.hpp>
 
@@ -41,8 +43,16 @@ void ChessBoardConfig::loadConfig(const cv::FileNode &chessBoardNode){
 	readSize(chessBoardNode, size);
 
 	cv::FileNode subpixelConfig = chessBoardNode["SubPixelConfig"];
+	std::string strSubpixelConfig;
 
-	if(not subpixelConfig.empty()){
+	if(subpixelConfig.isString()){
+		strSubpixelConfig = subpixelConfig.string();
+		std::for_each(strSubpixelConfig.begin(), strSubpixelConfig.end(), [](char &c){
+			c=tolower(c);
+		});
+	}
+
+	if(strSubpixelConfig != "none"){
 		bFindSubPixel = true;
 		readSize(subpixelConfig["WinSize"], subPixelWinSize);
 		readSize(subpixelConfig["ZeroZone"], subPixelZeroZone);

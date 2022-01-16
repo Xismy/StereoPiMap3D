@@ -6,6 +6,5 @@
 		<Type>ChessBoard</Type>
 		<Width>8</Width>
 		<Height>7</Height>
-		<SubPixelConfig></SubPixelConfig>
 	</MethodConfig>
 </opencv_storage>

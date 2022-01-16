@@ -36,8 +36,7 @@ target_link_libraries(StereoPiMap3DTests PRIVATE
 	opencv_core
 	opencv_calib3d
 	opencv_videoio
-	${GTEST_LIBRARY} 
-	${GTEST_MAIN_LIBRARY}
+	${GTEST_BOTH_LIBRARIES}
 )
 
 add_subdirectory(src)

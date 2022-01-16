@@ -6,4 +6,5 @@ target_sources(StereoPiMap3D PRIVATE
 
 target_sources(StereoPiMap3DTests PRIVATE
 	calibration.cpp
+	stereopi_camera.cpp
 )
